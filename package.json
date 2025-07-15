@@ -40,5 +40,9 @@
     "sm4",
     "国密算法",
     "混合加密"
-  ]
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/JsRicardo/mix-encryption.git"
+  }
 }
