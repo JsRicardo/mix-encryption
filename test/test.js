@@ -1,26 +1,5 @@
-import { sm2, sm4 } from "sm-crypto-v2";
 import MD5 from "md5";
-
-// 加密配置选项接口
-export interface EncryptionOption {
-  cipherMode?: number;
-  privateKey1?: string;
-  publicKey1?: string;
-  publicKey2?: string;
-  openEncrypt?: boolean;
-}
-
-// 混合加密结果接口
-interface MixEncryptResult {
-  encryptedData: string;
-  encryptKey: string;
-}
-
-// 签名验证结果接口
-interface VerifyResult {
-  signValueHex: string;
-  data: Record<string, any>;
-}
+import { sm2, sm4 } from "sm-crypto-v2";
 
 /**
  * 国密混合加密处理器（SM2+SM4）
@@ -30,20 +9,13 @@ interface VerifyResult {
  * 3. 提供数字签名验证功能
  */
 class MixEncryption {
-  // 定义类的属性及其类型
-  cipherMode: number;
-  privateKey1: string;
-  publicKey1: string;
-  publicKey2: string;
-  openEncrypt: boolean;
-
   constructor({
     cipherMode = 1,
     privateKey1 = "",
     publicKey1 = "",
     publicKey2 = "",
     openEncrypt = true,
-  }: EncryptionOption = {}) {
+  } = {}) {
     this.cipherMode = cipherMode;
     this.privateKey1 = privateKey1;
     this.publicKey1 = publicKey1;
@@ -59,23 +31,22 @@ class MixEncryption {
 
   /**
    * 混合加密方法，使用 SM4 加密请求数据，使用 SM2 加密 SM4 密钥
-   * @param requestData - 需要加密的请求数据，类型为键值对对象
-   * @returns 包含加密后的请求数据和加密后的 SM4 密钥的对象
+   * @param {Object} requestData - 需要加密的请求数据，类型为键值对对象
+   * @returns {Object} 包含加密后的请求数据和加密后的 SM4 密钥的对象
    * @throws 若公钥未初始化，抛出 "Public key not initialized" 错误
    * @throws 若请求数据不是对象，抛出 "requestData must be an Object" 错误
    */
-  mixCryptoEnCrypto(requestData: Record<string, any>): MixEncryptResult {
+  mixCryptoEnCrypto(requestData) {
     if (!this.publicKey1) {
       throw new Error("Public key not initialized");
     }
     if (typeof requestData !== "object" || requestData === null) {
       throw new Error("requestData must be an Object");
     }
-
-    const encryptKey = this.generateSM4key();
+    // 使用sm4加密请求，使用sm2加密sm4秘钥，返回密文请求和加密秘钥
+    const encryptKey = this.generateSM4key(); // 秘钥
     const encryptedData = this.sm4EnCrypto(requestData, encryptKey);
     const secretSM4Key = this.sm2EnCrypto(encryptKey);
-
     return {
       encryptedData,
       encryptKey: secretSM4Key,
@@ -84,24 +55,23 @@ class MixEncryption {
 
   /**
    * 混合解密方法，使用 SM2 解密 SM4 密钥，再使用解密后的 SM4 密钥解密密文响应数据
-   * @param responseData - 需要解密的响应数据，类型为字符串
-   * @param secretSM4Key - 加密后的 SM4 密钥，类型为字符串
-   * @returns 解密后的明文响应数据
+   * @param {string} responseData - 需要解密的响应数据，类型为字符串
+   * @param {string} secretSM4Key - 加密后的 SM4 密钥，类型为字符串
+   * @returns {Object|string} 解密后的明文响应数据
    * @throws 若私钥未初始化，调用 sm2DeCrypto 方法时会抛出 "Private key not initialized" 错误
    */
-  mixCryptoDeCrypto(
-    responseData: string,
-    secretSM4Key: string
-  ): Record<string, any> | string {
+  mixCryptoDeCrypto(responseData, secretSM4Key) {
+    // 使用sm2解密sm4秘钥，使用sm4秘钥解密密文，返回明文请求
     const decryptKey = this.sm2DeCrypto(secretSM4Key);
+
     const result = this.sm4DeCrypto(responseData, decryptKey);
+
     const { signValueHex, data } = result;
 
     const verifySignFlag = this.doVerifySign(
       MD5(JSON.stringify(data)),
       signValueHex
     );
-
     if (verifySignFlag) {
       return data;
     } else {
@@ -110,11 +80,13 @@ class MixEncryption {
   }
 
   // 生成公钥和私钥
-  generateSM2Key(): { publicKey: string; privateKey: string } | {} {
+  generateSM2Key() {
     if (this.openEncrypt) {
-      const { privateKey, publicKey } = sm2.generateKeyPairHex();
+      const { privateKey, publicKey } = sm2.generateKeyPairHex(); // 在请求成功之后再存储，防止重复登录导致重复加密
+
       this.privateKey1 = privateKey;
       this.publicKey1 = publicKey;
+
       return {
         publicKey,
         privateKey,
@@ -123,7 +95,7 @@ class MixEncryption {
     return {};
   }
 
-  doVerifySign(msg: string, signValueHex: string): boolean {
+  doVerifySign(msg, signValueHex) {
     const res = sm2.doVerifySignature(msg, signValueHex, this.publicKey2, {
       hash: true,
     });
@@ -131,7 +103,7 @@ class MixEncryption {
   }
 
   // 请求签名 防篡改
-  doSign(request: Record<string, any>): string {
+  doSign(request) {
     const str = JSON.stringify(request);
     const msg = MD5(str);
 
@@ -142,7 +114,7 @@ class MixEncryption {
     return signValueHex;
   }
 
-  randomStr(length: number): string {
+  randomStr(length) {
     const crypto = this.getCrypto();
     const buffer = new Uint8Array(length);
     crypto.getRandomValues(buffer);
@@ -152,67 +124,66 @@ class MixEncryption {
   }
 
   // 使用sm2加密sm4key
-  sm2EnCrypto(key: string): string {
+  sm2EnCrypto(key) {
     const secretKey = sm2.doEncrypt(key, this.publicKey2, this.cipherMode);
     return secretKey;
   }
 
   // sm2解密key
-  sm2DeCrypto(secretKey: string): string {
+  sm2DeCrypto(secretKey) {
     if (!this.privateKey1) {
       throw new Error("Private key not initialized");
     }
-    const key = sm2.doDecrypt(secretKey, this.privateKey1, this.cipherMode, {
-      output: "string",
-    });
-
+    const key = sm2.doDecrypt(secretKey, this.privateKey1, this.cipherMode);
     return key;
   }
 
   // sm4加密请求
-  sm4EnCrypto(request: Record<string, any>, encryptKey: string): string {
+  sm4EnCrypto(request, encryptKey) {
     const signValueHex = this.doSign(request);
     const _req = {
       data: request,
       signValueHex,
     };
-
-    const requestData = sm4.encrypt(JSON.stringify(_req), encryptKey, {
-      output: "string",
-    });
-
+    const requestData = sm4.encrypt(JSON.stringify(_req), encryptKey);
     return requestData;
   }
 
-  generateSM4key(): string {
+  generateSM4key() {
     const res = this.randomStr(16);
     return res;
   }
 
   // sm4解密响应
-  sm4DeCrypto(responseString: string, deCryptoKey: string): VerifyResult {
+  sm4DeCrypto(responseString, deCryptoKey) {
     if (responseString) {
-      const str = sm4.decrypt(responseString, deCryptoKey, {
-        output: "string",
-      });
+      const str = sm4.decrypt(responseString, deCryptoKey);
       return JSON.parse(str);
     }
-
-    return {} as VerifyResult;
+    return "";
   }
 
-  getCrypto(): Crypto | { getRandomValues: (array: Uint8Array) => Uint8Array } {
+  getCrypto() {
     if (typeof crypto !== "undefined") return crypto;
     if (typeof window !== "undefined" && window.crypto) return window.crypto;
-    return require("crypto").webcrypto;
+    return require("crypto");
   }
 }
 
-let instance: MixEncryption | undefined;
+const instance = new MixEncryption({});
+const instance2 = new MixEncryption({});
 
-export function getCryptoInstance(options: EncryptionOption): MixEncryption {
-  if (!instance) {
-    instance = new MixEncryption(options);
-  }
-  return instance;
-}
+const { publicKey: pb1 } = instance.generateSM2Key();
+const { publicKey: pb2 } = instance2.generateSM2Key();
+instance2.publicKey2 = pb1;
+instance.publicKey2 = pb2;
+
+const enData = instance.mixCryptoEnCrypto({ data: 1, msg: 2 });
+
+try {
+  const res = instance2.mixCryptoDeCrypto(
+    enData.encryptedData,
+    enData.encryptKey
+  );
+  console.error("log by Ricardo M Lee rocket", res);
+} catch (e) {}

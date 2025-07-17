@@ -9,8 +9,9 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "declaration": true,
+    "declaration": true, // 确保开启类型声明文件生成
     "declarationMap": true,
+    "declarationDir": "dist/types", // 指定类型声明文件输出目录
     "sourceMap": true,
     "moduleResolution": "node",
     "resolveJsonModule": true,

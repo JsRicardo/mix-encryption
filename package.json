@@ -1,14 +1,15 @@
 {
   "name": "mix-encryption",
-  "version": "0.0.9",
+  "version": "1.0.1",
   "main": "dist/index.cjs.js",
   "module": "dist/index.esm.js",
   "browser": "dist/index.umd.js",
-  "types": "dist/index.d.ts",
+  "types": "dist/types/index.d.ts",
   "scripts": {
     "build": "rm -rf dist && rollup -c",
     "prepublishOnly": "npm run build",
-    "publish": "npm publish --access public"
+    "publish": "npm publish --access public",
+    "dev": "rollup -c -w"
   },
   "files": [
     "dist"
@@ -19,7 +20,7 @@
   "description": "",
   "dependencies": {
     "md5": "^2.3.0",
-    "sm-crypto": "^0.3.13"
+    "sm-crypto-v2": "^1.13.0"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^28.0.6",
@@ -28,7 +29,6 @@
     "@rollup/plugin-typescript": "^12.1.4",
     "@types/md5": "^2.3.5",
     "@types/node": "^24.0.14",
-    "@types/sm-crypto": "^0.3.4",
     "rollup": "^4.45.1",
     "rollup-plugin-delete": "^3.0.1",
     "rollup-plugin-dts": "^6.2.1",
