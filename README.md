@@ -5,7 +5,7 @@
 ## 安装
 
 ```bash
-npm install mix-encryption
+pnpm install mix-encryption
 ```
 
 ## 使用示例
@@ -15,24 +15,44 @@ npm install mix-encryption
 import { getCryptoInstance } from "mix-encryption";
 
 // 支持传入本地缓存的密钥对 可选参数
-const instance = getCryptoInstance({
+const client = getCryptoInstance({
   cipherMode: 1,
   privateKey1: "your_private_key",
   publicKey1: "your_public_key",
   publicKey2: "partner_public_key",
 });
 
-// 首次使用 初始化密钥对  将公钥发给服务端配对使用
-const { publicKey } = instance.generateSM2Key();
+// client 首次使用 初始化密钥对
+const { publicKey } = client.generateSM2Key();
 
-// 从服务端获取服务端公钥配对
-instance.publicKey2("server_publicKey");
+// client 将公钥发给服务端配对使用
+sendToServer({ publicKey });
 
-// 加密
-const { encryptedData, encryptKey } = instance.mixCryptoEnCrypto({
+// server 生成自己的密钥对，并存储客户端公钥
+const server = getCryptoInstance({
+  cipherMode: 1,
+  privateKey1: "your_private_key",
+  publicKey1: "your_public_key",
+  publicKey2: "partner_public_key",
+});
+server.acceptPartnerKey(publicKey);
+
+// server 服务端使用密钥加密返回体
+const { encryptedData, encryptKey } = server.mixCryptoEnCrypto({
   data: "data",
+  publicKey: server.publicKey,
 });
 
-// 解密
-const decryptedData = instance.mixCryptoDeCrypto(encryptedData, encryptKey);
+// server 将公钥返回给客户端
+sendToClient({ encryptedData, encryptKey });
+
+// client 从服务端获取服务端公钥配对，第一次解密不用验签
+const decryptedData = client.mixCryptoDeCrypto(
+  encryptedData,
+  encryptKey,
+  false
+);
+
+// client 完成配对
+client.acceptPartnerKey(decryptedData.publicKey);
 ```

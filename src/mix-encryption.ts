@@ -31,11 +31,11 @@ interface VerifyResult {
  */
 class MixEncryption {
   // 定义类的属性及其类型
-  cipherMode: number;
-  privateKey1: string;
-  publicKey1: string;
-  publicKey2: string;
-  openEncrypt: boolean;
+  private cipherMode: number;
+  private privateKey1: string;
+  private publicKey1: string;
+  private publicKey2: string;
+  private openEncrypt: boolean;
 
   constructor({
     cipherMode = 1,
@@ -49,6 +49,10 @@ class MixEncryption {
     this.publicKey1 = publicKey1;
     this.publicKey2 = publicKey2;
     this.openEncrypt = openEncrypt;
+  }
+
+  get publicKey() {
+    return this.publicKey1;
   }
 
   resetKeyPair() {
@@ -86,21 +90,22 @@ class MixEncryption {
    * 混合解密方法，使用 SM2 解密 SM4 密钥，再使用解密后的 SM4 密钥解密密文响应数据
    * @param responseData - 需要解密的响应数据，类型为字符串
    * @param secretSM4Key - 加密后的 SM4 密钥，类型为字符串
+   * @param needVerifySign - 是否需要验证签名，类型为布尔值，默认值为 true，首次和服务端通信时，还未拿到服务端公钥，不能验签
    * @returns 解密后的明文响应数据
    * @throws 若私钥未初始化，调用 sm2DeCrypto 方法时会抛出 "Private key not initialized" 错误
    */
   mixCryptoDeCrypto(
     responseData: string,
-    secretSM4Key: string
+    secretSM4Key: string,
+    needVerifySign: boolean = true
   ): Record<string, any> | string {
     const decryptKey = this.sm2DeCrypto(secretSM4Key);
     const result = this.sm4DeCrypto(responseData, decryptKey);
     const { signValueHex, data } = result;
 
-    const verifySignFlag = this.doVerifySign(
-      MD5(JSON.stringify(data)),
-      signValueHex
-    );
+    const verifySignFlag = needVerifySign
+      ? this.doVerifySign(MD5(JSON.stringify(data)), signValueHex)
+      : true;
 
     if (verifySignFlag) {
       return data;
@@ -140,6 +145,18 @@ class MixEncryption {
     });
 
     return signValueHex;
+  }
+
+  /**
+   * 接收配对公钥
+   * @param key 服务端公钥
+   */
+  acceptPartnerKey(key: string) {
+    if (!key) {
+      throw new Error("partner public key must be a string");
+    }
+
+    this.publicKey2 = key;
   }
 
   randomStr(length: number): string {
@@ -210,7 +227,9 @@ class MixEncryption {
 
 let instance: MixEncryption | undefined;
 
-export function getCryptoInstance(options: EncryptionOption): MixEncryption {
+export function getCryptoInstance(
+  options: EncryptionOption = {}
+): MixEncryption {
   if (!instance) {
     instance = new MixEncryption(options);
   }
