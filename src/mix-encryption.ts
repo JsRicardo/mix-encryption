@@ -39,7 +39,7 @@ class MixEncryption {
     cipherMode = 1,
     selfPriKey = "",
     selfPubKey = "",
-    partnerKey = "",
+    partnerKey = ""
   }: EncryptionOption = {}) {
     this.cipherMode = cipherMode;
     this.selfPriKey = selfPriKey;
@@ -83,7 +83,7 @@ class MixEncryption {
 
     return {
       encryptedData,
-      encryptKey: secretSM4Key,
+      encryptKey: secretSM4Key
     };
   }
 
@@ -127,7 +127,7 @@ class MixEncryption {
     this.selfPubKey = publicKey;
     return {
       publicKey,
-      privateKey,
+      privateKey
     };
   }
 
@@ -147,9 +147,7 @@ class MixEncryption {
    * 更新密钥对
    * @param sendCallBack - 发送新公钥到合作端并获取新公钥的回调函数
    */
-  public async renewKeyPair(
-    sendCallBack: (data: MixEncryptResult) => Promise<string>
-  ) {
+  public async renewKeyPair(sendCallBack: (data: MixEncryptResult) => Promise<string>) {
     const { privateKey, publicKey } = sm2.generateKeyPairHex();
     const encryptedData = this.mixCryptoEnCrypto({ key: publicKey });
     const newPartnerKey = await sendCallBack(encryptedData);
@@ -178,7 +176,7 @@ class MixEncryption {
 
   private doVerifySign(msg: string, signValueHex: string): boolean {
     const res = sm2.doVerifySignature(msg, signValueHex, this.partnerKey, {
-      hash: true,
+      hash: true
     });
     return res;
   }
@@ -189,7 +187,7 @@ class MixEncryption {
     const msg = MD5(str);
 
     const signValueHex = sm2.doSignature(msg, this.selfPriKey, {
-      hash: true,
+      hash: true
     });
 
     return signValueHex;
@@ -207,25 +205,22 @@ class MixEncryption {
       throw new Error("Private key not initialized");
     }
     const key = sm2.doDecrypt(secretKey, this.selfPriKey, this.cipherMode, {
-      output: "string",
+      output: "string"
     });
 
     return key;
   }
 
   // sm4加密请求
-  private sm4EnCrypto(
-    request: Record<string, any>,
-    encryptKey: string
-  ): string {
+  private sm4EnCrypto(request: Record<string, any>, encryptKey: string): string {
     const signValueHex = this.doSign(request);
     const _req = {
       data: request,
-      signValueHex,
+      signValueHex
     };
 
     const requestData = sm4.encrypt(JSON.stringify(_req), encryptKey, {
-      output: "string",
+      output: "string"
     });
 
     return requestData;
@@ -237,13 +232,10 @@ class MixEncryption {
   }
 
   // sm4解密响应
-  private sm4DeCrypto(
-    responseString: string,
-    deCryptoKey: string
-  ): VerifyResult {
+  private sm4DeCrypto(responseString: string, deCryptoKey: string): VerifyResult {
     if (responseString) {
       const str = sm4.decrypt(responseString, deCryptoKey, {
-        output: "string",
+        output: "string"
       });
       return JSON.parse(str);
     }
@@ -251,9 +243,7 @@ class MixEncryption {
     return {} as VerifyResult;
   }
 
-  private getCrypto():
-    | Crypto
-    | { getRandomValues: (array: Uint8Array) => Uint8Array } {
+  private getCrypto(): Crypto | { getRandomValues: (array: Uint8Array) => Uint8Array } {
     if (typeof crypto !== "undefined") return crypto;
     if (typeof window !== "undefined" && window.crypto) return window.crypto;
     return require("crypto").webcrypto;
@@ -262,9 +252,7 @@ class MixEncryption {
 
 let instance: MixEncryption | undefined;
 
-export default function getCryptoInstance(
-  options: EncryptionOption = {}
-): MixEncryption {
+export default function getCryptoInstance(options: EncryptionOption = {}): MixEncryption {
   if (!instance) {
     instance = new MixEncryption(options);
   }

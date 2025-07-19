@@ -9,7 +9,10 @@
     "build": "rm -rf dist && rollup -c",
     "prepublishOnly": "npm run build",
     "publish": "npm publish --access public",
-    "dev": "rollup -c -w"
+    "lint": "eslint src --ext .ts,.js",
+    "lint:fix": "eslint src --ext .ts,.js --fix",
+    "dev": "rollup -c -w",
+    "format": "prettier --write \"src/**/*.{ts,js,json,md}\""
   },
   "files": [
     "dist"
@@ -23,12 +26,22 @@
     "sm-crypto-v2": "^1.13.0"
   },
   "devDependencies": {
+    "@commitlint/cli": "^19.8.1",
+    "@commitlint/config-conventional": "^19.8.1",
+    "@eslint/js": "^9.31.0",
     "@rollup/plugin-commonjs": "^28.0.6",
     "@rollup/plugin-node-resolve": "^16.0.1",
     "@rollup/plugin-terser": "^0.4.4",
     "@rollup/plugin-typescript": "^12.1.4",
     "@types/md5": "^2.3.5",
     "@types/node": "^24.0.14",
+    "@typescript-eslint/eslint-plugin": "^8.37.0",
+    "@typescript-eslint/parser": "^8.37.0",
+    "eslint": "^9.31.0",
+    "eslint-plugin-import": "^2.32.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.1.2",
+    "prettier": "^3.6.2",
     "rollup": "^4.45.1",
     "rollup-plugin-delete": "^3.0.1",
     "rollup-plugin-dts": "^6.2.1",
@@ -45,5 +58,11 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/JsRicardo/mix-encryption.git"
+  },
+  "lint-staged": {
+    "src/**/*.{ts,js}": [
+      "eslint --fix",
+      "prettier --write"
+    ]
   }
 }
