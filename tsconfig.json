@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
-    "target": "ES6",
+    "target": "ES2018",
     "module": "ESNext",
-    "lib": ["ES6", "DOM"],
+    "lib": ["ES2018", "DOM"],
     "outDir": "./dist",
     "rootDir": "./src",
     "strict": true,

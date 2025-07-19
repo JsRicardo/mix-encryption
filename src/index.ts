@@ -1,2 +1,6 @@
-export { getCryptoInstance } from "./mix-encryption";
-export type { EncryptionOption } from "./mix-encryption";
+export { default } from "./mix-encryption";
+export type {
+  EncryptionOption,
+  MixEncryptResult,
+  VerifyResult,
+} from "./mix-encryption";

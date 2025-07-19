@@ -12,14 +12,14 @@ pnpm install mix-encryption
 
 ```typescript
 // 客户端 与 服务端操作相同
-import { getCryptoInstance } from "mix-encryption";
+import getCryptoInstance from "mix-encryption";
 
 // 支持传入本地缓存的密钥对 可选参数
 const client = getCryptoInstance({
   cipherMode: 1,
-  privateKey1: "your_private_key",
-  publicKey1: "your_public_key",
-  publicKey2: "partner_public_key",
+  selfPriKey: "your_private_key",
+  selfPubKey: "your_public_key",
+  partnerKey: "partner_public_key",
 });
 
 // client 首次使用 初始化密钥对
@@ -29,12 +29,7 @@ const { publicKey } = client.generateSM2Key();
 sendToServer({ publicKey });
 
 // server 生成自己的密钥对，并存储客户端公钥
-const server = getCryptoInstance({
-  cipherMode: 1,
-  privateKey1: "your_private_key",
-  publicKey1: "your_public_key",
-  publicKey2: "partner_public_key",
-});
+const server = getCryptoInstance();
 server.acceptPartnerKey(publicKey);
 
 // server 服务端使用密钥加密返回体
@@ -55,4 +50,19 @@ const decryptedData = client.mixCryptoDeCrypto(
 
 // client 完成配对
 client.acceptPartnerKey(decryptedData.publicKey);
+
+// 重置密钥对
+// 将新的密钥通过某次请求发送给后端，通过中间件处理
+// 或者新增接口专门处理
+function send(encryptedData) {
+  const res = server.mixCryptoDeCrypto(
+    encryptedData.encryptedData,
+    encryptedData.encryptKey
+  );
+  const { publicKey } = server.generateSM2Key();
+  server.acceptPartnerKey(res.key);
+  return publicKey;
+}
+
+await client.renewKeyPair(send);
 ```
